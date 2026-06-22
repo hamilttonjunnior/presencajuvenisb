@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Presença - Voleibol</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-hover: #172554;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #ca8a04;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 20px; }
+        h1 { color: var(--primary); font-size: 24px; }
+        
+        nav { display: flex; gap: 10px; margin-bottom: 20px; }
+        nav button { background: #e2e8f0; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; }
+        nav button.active { background: var(--primary); color: white; }
+        
+        .tab-content { display: none; background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .tab-content.active { display: block; }
+
+        .form-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; outline: none; }
+        input[type="text"] { flex: 1; min-width: 200px; }
+        
+        button.btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+        button.btn:hover { background: var(--primary-hover); }
+        button.btn-print { background: #475569; }
+        button.btn-print:hover { background: #334155; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: left; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 14px; }
+        th { background-color: #f1f5f9; color: var(--primary); font-weight: 600; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; display: inline-block; }
+        .badge-p { background-color: var(--success); }
+        .badge-f { background-color: var(--danger); }
+        .badge-j { background-color: var(--warning); }
+
+        .actions-cell { display: flex; gap: 5px; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; color: white; font-weight: 600; }
+        .btn-edit { background-color: #0284c7; }
+        .btn-delete { background-color: var(--danger); }
+
+        .justif-input { width: 100%; max-width: 250px; margin-top: 5px; display: none; }
+        
+        /* Estilos de Impressão */
+        @media print {
+            body { background: white; color: black; padding: 0; }
+            nav, .form-group, .actions-cell, th:last-child, td:last-child, .no-print { display: none !important; }
+            .tab-content { box-shadow: none; padding: 0; display: block !important; }
+            .container { max-width: 100%; }
+            th { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Gestão de Presenças - Pavilhão Gonçalo Nunes</h1>
+        <div id="loading" style="font-weight: bold; color: var(--warning);">Conectando ao banco...</div>
+    </header>
+
+    <nav>
+        <button id="btn-tab-chamada" class="active" onclick="switchTab('chamada')">Fazer Chamada / Editar</button>
+        <button id="btn-tab-atletas" onclick="switchTab('atletas')">Gerenciar Atletas</button>
+        <button id="btn-tab-relatorio" onclick="switchTab('relatorio')">Relatório Mensal/Anual</button>
+    </nav>
+
+    <!-- ABA CHAMADA -->
+    <div id="tab-chamada" class="tab-content active">
+        <div class="form-group">
+            <label for="data-chamada"><b>Data do Treino:</b></label>
+            <input type="date" id="data-chamada" onchange="loadAttendanceDay()">
+            <span style="font-size: 12px; color: #64748b;">(Ter: 19h30 | Qua: 20h30 | Sex: 20h00)</span>
+        </div>
+        <table id="table-chamada">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Nº Camisa</th>
+                    <th style="width: 40%;">Nome da Atleta</th>
+                    <th style="width: 50%;">Presença / Justificativa</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-chamada">
+                <!-- Inserido dinamicamente -->
+            </tbody>
+        </table>
+        <div style="margin-top: 20px;">
+            <button class="btn" onclick="saveAttendance()">Salvar Lista de Presença</button>
+        </div>
+    </div>
+
+    <!-- ABA ATLETAS -->
+    <div id="tab-atletas" class="tab-content">
+        <div class="form-group">
+            <input type="hidden" id="edit-athlete-id">
+            <input type="number" id="athlete-number" placeholder="Nº Camisa" style="width: 100px;">
+            <input type="text" id="athlete-name" placeholder="Nome Completo da Atleta">
+            <button class="btn" id="btn-save-athlete" onclick="saveAthlete()">Adicionar Atleta</button>
+            <button class="btn btn-delete" id="btn-cancel-edit" style="display:none;" onclick="cancelAthleteEdit()">Cancelar</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%;">Nº Camisa</th>
+                    <th>Nome Completo</th>
+                    <th style="width: 20%;">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-athletes">
+                <!-- Inserido dinamicamente -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ABA RELATÓRIO -->
+    <div id="tab-relatorio" class="tab-content">
+        <div class="form-group no-print">
+            <label for="filter-month"><b>Filtrar por Mês/Ano:</b></label>
+            <select id="filter-month" onchange="generateReport()">
+                <option value="ALL">Ano Completo (Todos)</option>
+                <option value="01">Janeiro</option>
+                <option value="02">Fevereiro</option>
+                <option value="03">Março</option>
+                <option value="04">Abril</option>
+                <option value="05">Maio</option>
+                <option value="06">Junho</option>
+                <option value="07">Julho</option>
+                <option value="08">Agosto</option>
+                <option value="09">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+            </select>
+            <button class="btn btn-print" onclick="window.print()">Imprimir Relatório</button>
+        </div>
+        <div id="report-header" style="margin-bottom: 15px; font-weight: bold; color: var(--primary);"></div>
+        <table id="table-relatorio">
+            <thead>
+                <tr>
+                    <th>Nº Camisa</th>
+                    <th>Nome da Atleta</th>
+                    <th>Presenças (P)</th>
+                    <th>Faltas (F)</th>
+                    <th>Justificadas (J)</th>
+                    <th>% Presença</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-relatorio">
+                <!-- Inserido dinamicamente -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Scripts do Firebase v10 usando ES Modules -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, doc, setDoc, getDocs, getDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Credenciais extraídas da imagem image_825320.png
+    const firebaseConfig = {
+        apiKey: "AizaSyDjkqF3GwMPuU74KBTVZA0Rz7Qq1g_y6rA",
+        authDomain: "listapresenca-3b760.firebaseapp.com",
+        projectId: "listapresenca-3b760",
+        storageBucket: "listapresenca-3b760.firebasestorage.app",
+        messagingSenderId: "651053296",
+        appId: "1:651053296:web:a41c8cef4cd3c2aff6bc65",
+        measurementId: "G-M3CXG9ZNMV"
+    };
+
+    // Inicializa o Firebase e o Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Listas globais na memória da página
+    let athletesList = [];
+    let attendanceData = {}; 
+
+    // Lista inicial de atletas extraídas da imagem image_824a85.png
+    const initialAthletes = [
+        { number: "", name: "Carolina Coutada Rodrigues" },
+        { number: "", name: "Ana Carolina da Silva Veríssimo" },
+        { number: "", name: "Maria Luísa Meneses Baptista" },
+        { number: "", name: "Matilde Bastos Rocha" },
+        { number: "", name: "Francisca Gaião Miranda da Silva" },
+        { number: "", name: "Nádia dos Santos Silva" },
+        { number: "", name: "Carolina Braga da Silva Cardoso Arantes" },
+        { number: "", name: "Matilde Luís Campos Loureiro" },
+        { number: "", name: "Carla Rodríguez Miranda" },
+        { number: "", name: "Matilde Sofia Costa Silva" },
+        { number: "", name: "Diana Rafaela da Silva Dantas" },
+        { number: "", name: "Iara e Castro Barreiro Pereira" },
+        { number: "", name: "Maria Faria Silva" },
+        { number: "", name: "Melanie Ribeiro Martins" }
+    ];
+
+    // Inicialização do App
+    window.addEventListener('DOMContentLoaded', async () => {
+        // Define a data padrão para o dia de hoje (fuso local)
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('data-chamada').value = today;
+
+        document.getElementById('loading').innerText = "Carregando dados...";
+        await loadAthletes();
+        await loadAttendanceDay();
+        document.getElementById('loading').style.display = "none";
+    });
+
+    // --- GERENCIAMENTO DE ATLETAS ---
+    async function loadAthletes() {
+        athletesList = [];
+        const q = query(collection(db, "athletes"), orderBy("name"));
+        const querySnapshot = await getDocs(q);
+        
+        // Se o banco estiver vazio, popula com a lista inicial enviada
+        if (querySnapshot.empty) {
+            document.getElementById('loading').innerText = "Criando lista inicial de atletas...";
+            for (let item of initialAthletes) {
+                const newDocRef = doc(collection(db, "athletes"));
+                await setDoc(newDocRef, { number: item.number, name: item.name });
+            }
+            // Recarrega após preencher
+            const retrySnapshot = await getDocs(q);
+            retrySnapshot.forEach((doc) => {
+                athletesList.push({ id: doc.id, ...doc.data() });
+            });
+        } else {
+            querySnapshot.forEach((doc) => {
+                athletesList.push({ id: doc.id, ...doc.data() });
+            });
+        }
+        renderAthletesTable();
+    }
+
+    function renderAthletesTable() {
+        const tbody = document.getElementById('tbody-athletes');
+        tbody.innerHTML = "";
+        athletesList.forEach(athlete => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><b>${athlete.number || '-'}</b></td>
+                <td>${athlete.name}</td>
+                <td class="actions-cell">
+                    <button class="btn-sm btn-edit" onclick="editAthlete('${athlete.id}', '${athlete.name}', '${athlete.number || ''}')">Editar</button>
+                    <button class="btn-sm btn-delete" onclick="deleteAthlete('${athlete.id}')">Excluir</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.saveAthlete = async function() {
+        const id = document.getElementById('edit-athlete-id').value;
+        const name = document.getElementById('athlete-name').value.trim();
+        const number = document.getElementById('athlete-number').value.trim();
+
+        if (!name) return alert("Por favor, preencha o nome da atleta.");
+
+        document.getElementById('loading').style.display = "block";
+        document.getElementById('loading').innerText = "Salvando atleta...";
+
+        if (id) {
+            // Edição
+            await setDoc(doc(db, "athletes", id), { name, number });
+        } else {
+            // Criação de nova
+            const newDocRef = doc(collection(db, "athletes"));
+            await setDoc(newDocRef, { name, number });
+        }
+
+        cancelAthleteEdit();
+        await loadAthletes();
+        await loadAttendanceDay();
+        document.getElementById('loading').style.display = "none";
+    };
+
+    window.editAthlete = function(id, name, number) {
+        document.getElementById('edit-athlete-id').value = id;
+        document.getElementById('athlete-name').value = name;
+        document.getElementById('athlete-number').value = number;
+        document.getElementById('btn-save-athlete').innerText = "Salvar Alterações";
+        document.getElementById('btn-cancel-edit').style.display = "inline-block";
+    };
+
+    window.cancelAthleteEdit = function() {
+        document.getElementById('edit-athlete-id').value = "";
+        document.getElementById('athlete-name').value = "";
+        document.getElementById('athlete-number').value = "";
+        document.getElementById('btn-save-athlete').innerText = "Adicionar Atleta";
+        document.getElementById('btn-cancel-edit').style.display = "none";
+    };
+
+    window.deleteAthlete = async function(id) {
+        if(confirm("Deseja mesmo remover esta atleta do elenco?")) {
+            document.getElementById('loading').style.display = "block";
+            await deleteDoc(doc(db, "athletes", id));
+            await loadAthletes();
+            await loadAttendanceDay();
+            document.getElementById('loading').style.display = "none";
+        }
+    };
+
+
+    // --- CONTROLE DE PRESENÇA (CHAMADA) ---
+    window.loadAttendanceDay = async function() {
+        const dateStr = document.getElementById('data-chamada').value;
+        if (!dateStr) return;
+
+        const docRef = doc(db, "attendance", dateStr);
+        const docSnap = await getDoc(docRef);
+
+        const savedRecords = docSnap.exists() ? docSnap.data().records : {};
+        
+        const tbody = document.getElementById('tbody-chamada');
+        tbody.innerHTML = "";
+
+        if (athletesList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Nenhuma atleta cadastrada.</td></tr>`;
+            return;
+        }
+
+        athletesList.forEach(athlete => {
+            const status = savedRecords[athlete.id] ? savedRecords[athlete.id].status : "P"; // Padrão Presença
+            const justification = savedRecords[athlete.id] ? (savedRecords[athlete.id].justification || "") : "";
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><b>${athlete.number || '-'}</b></td>
+                <td>${athlete.name}</td>
+                <td>
+                    <select id="status-${athlete.id}" onchange="toggleJustifyField('${athlete.id}')" style="width: 140px;">
+                        <option value="P" ${status === 'P' ? 'selected' : ''}>Presença</option>
+                        <option value="F" ${status === 'F' ? 'selected' : ''}>Falta</option>
+                        <option value="J" ${status === 'J' ? 'selected' : ''}>Justificada</option>
+                    </select>
+                    <input type="text" id="justif-${athlete.id}" class="justif-input" placeholder="Motivo da justificativa..." value="${justification}" style="display: ${status === 'J' ? 'block' : 'none'};">
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+
+    window.toggleJustifyField = function(id) {
+        const status = document.getElementById(`status-${id}`).value;
+        const input = document.getElementById(`justif-${id}`);
+        if (status === 'J') {
+            input.style.display = "block";
+        } else {
+            input.style.display = "none";
+            input.value = "";
+        }
+    };
+
+    window.saveAttendance = async function() {
+        const dateStr = document.getElementById('data-chamada').value;
+        if (!dateStr) return alert("Selecione uma data válida.");
+
+        document.getElementById('loading').style.display = "block";
+        document.getElementById('loading').innerText = "Salvando lista de presença...";
+
+        const records = {};
+        athletesList.forEach(athlete => {
+            const status = document.getElementById(`status-${athlete.id}`).value;
+            const justification = document.getElementById(`justif-${athlete.id}`).value.trim();
+            records[athlete.id] = { status, justification };
+        });
+
+        await setDoc(doc(db, "attendance", dateStr), { records });
+        
+        document.getElementById('loading').style.display = "none";
+        alert("Lista de presença salva com sucesso!");
+        await generateReport(); 
+    };
+
+
+    // --- GERADOR DE RELATÓRIOS ---
+    window.generateReport = async function() {
+        const filter = document.getElementById('filter-month').value;
+        const reportHeader = document.getElementById('report-header');
+        
+        if (filter === "ALL") {
+            reportHeader.innerText = "Relatório Consolidado Geral (Todos os Treinos)";
+        } else {
+            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            reportHeader.innerText = `Relatório Mensal Correspondente ao mês de: ${monthNames[parseInt(filter) - 1]}`;
+        }
+
+        // Puxa todo o histórico do banco
+        const querySnapshot = await getDocs(collection(db, "attendance"));
+        
+        // Inicializa o contador para cada jogadora ativa no elenco
+        const stats = {};
+        athletesList.forEach(a => {
+            stats[a.id] = { p: 0, f: 0, j: 0, total: 0, name: a.name, number: a.number };
+        });
+
+        querySnapshot.forEach(docSnap => {
+            const dateKey = docSnap.id; // formato "AAAA-MM-DD"
+            const monthOfDoc = dateKey.split("-")[1];
+
+            // Verifica se a data corresponde ao filtro escolhido
+            if (filter === "ALL" || filter === monthOfDoc) {
+                const dayRecords = docSnap.data().records || {};
+                
+                Object.keys(dayRecords).forEach(athleteId => {
+                    // Contabiliza apenas se a atleta ainda existir na nossa lista principal
+                    if (stats[athleteId]) {
+                        const status = dayRecords[athleteId].status;
+                        stats[athleteId].total++;
+                        if (status === 'P') stats[athleteId].p++;
+                        else if (status === 'F') stats[athleteId].f++;
+                        else if (status === 'J') stats[athleteId].j++;
+                    }
+                });
+            }
+        });
+
+        // Renderiza na tabela de relatórios
+        const tbody = document.getElementById('tbody-relatorio');
+        tbody.innerHTML = "";
+
+        athletesList.forEach(athlete => {
+            const data = stats[athlete.id];
+            const pct = data.total > 0 ? ((data.p / data.total) * 100).toFixed(1) : "0.0";
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><b>${data.number || '-'}</b></td>
+                <td>${data.name}</td>
+                <td><span class="badge badge-p">${data.p}</span></td>
+                <td><span class="badge badge-f">${data.f}</span></td>
+                <td><span class="badge badge-j">${data.j}</span></td>
+                <td><b>${pct}%</b></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+
+
+    // --- NAVEGAÇÃO DE ABAS ---
+    window.switchTab = function(tabName) {
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+
+        document.getElementById(`btn-tab-${tabName}`).classList.add('active');
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+
+        if(tabName === 'relatorio') {
+            generateReport();
+        }
+    };
+
+</script>
+</body>
+</html>
