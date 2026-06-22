@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Presença - Voleibol</title>
+    <title>Lista de Presenca: FCA - Juvenis B</title>
     <style>
         :root {
             --primary: #1e3a8a;
@@ -19,10 +19,33 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--bg); color: var(--text); padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container { max-width: 1250px; margin: 0 auto; }
         
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 20px; }
-        h1 { color: var(--primary); font-size: 24px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+        .header-title-area { display: flex; align-items: center; gap: 20px; }
+        
+        /* Espaço para a Logo do Clube */
+        .club-logo {
+            width: 80px;
+            height: 80px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #64748b;
+            text-align: center;
+            background: #f1f5f9;
+            overflow: hidden;
+        }
+        .club-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        h1 { color: var(--primary); font-size: 26px; }
         
         nav { display: flex; gap: 10px; margin-bottom: 20px; }
         nav button { background: #e2e8f0; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; }
@@ -41,7 +64,7 @@
         button.btn-print:hover { background: #334155; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: left; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 14px; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: top; }
         th { background-color: #f1f5f9; color: var(--primary); font-weight: 600; }
         
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; display: inline-block; }
@@ -56,6 +79,25 @@
 
         .justif-input { width: 100%; max-width: 250px; margin-top: 5px; display: none; }
         
+        /* Histórico de Faltas Listado no Relatório */
+        .absence-history-list {
+            list-style: none;
+            padding: 0;
+            font-size: 12px;
+        }
+        .absence-history-list li {
+            margin-bottom: 4px;
+            padding: 2px 0;
+        }
+        .absence-date {
+            font-weight: bold;
+            color: #334155;
+        }
+        .absence-note {
+            font-style: italic;
+            color: #64748b;
+        }
+
         /* Estilos de Impressão */
         @media print {
             body { background: white; color: black; padding: 0; }
@@ -63,6 +105,7 @@
             .tab-content { box-shadow: none; padding: 0; display: block !important; }
             .container { max-width: 100%; }
             th { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .club-logo { border: 1px solid #cbd5e1; }
         }
     </style>
 </head>
@@ -70,7 +113,14 @@
 
 <div class="container">
     <header>
-        <h1>Gestão de Presenças - Pavilhão Gonçalo Nunes</h1>
+        <div class="header-title-area">
+            <!-- Espaço reservado para colocar o arquivo ou link da Logo -->
+            <div class="club-logo">
+                <!-- Se tiver o arquivo da logo, mude para: <img src="logo.png" alt="Logo FCA"> -->
+                <span>[ LOGO FCA ]</span>
+            </div>
+            <h1>Lista de Presenca: FCA - Juvenis B</h1>
+        </div>
         <div id="loading" style="font-weight: bold; color: var(--warning);">Conectando ao banco...</div>
     </header>
 
@@ -148,16 +198,17 @@
             </select>
             <button class="btn btn-print" onclick="window.print()">Imprimir Relatório</button>
         </div>
-        <div id="report-header" style="margin-bottom: 15px; font-weight: bold; color: var(--primary);"></div>
+        <div id="report-header" style="margin-bottom: 15px; font-weight: bold; color: var(--primary); font-size: 16px;"></div>
         <table id="table-relatorio">
             <thead>
                 <tr>
-                    <th>Nº Camisa</th>
-                    <th>Nome da Atleta</th>
-                    <th>Presenças (P)</th>
-                    <th>Faltas (F)</th>
-                    <th>Justificadas (J)</th>
-                    <th>% Presença</th>
+                    <th style="width: 8%;">Nº</th>
+                    <th style="width: 25%;">Nome da Atleta</th>
+                    <th style="width: 10%;">Presenças (P)</th>
+                    <th style="width: 10%;">Faltas (F)</th>
+                    <th style="width: 10%;">Justific. (J)</th>
+                    <th style="width: 12%;">% Presença</th>
+                    <th style="width: 25%;">Histórico Detalhado de Faltas (Dia/Mês)</th>
                 </tr>
             </thead>
             <tbody id="tbody-relatorio">
@@ -183,15 +234,11 @@
         measurementId: "G-M3CXG9ZNMV"
     };
 
-    // Inicializa o Firebase e o Firestore
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Listas globais na memória da página
     let athletesList = [];
-    let attendanceData = {}; 
 
-    // Lista inicial de atletas extraídas da imagem image_824a85.png
     const initialAthletes = [
         { number: "", name: "Carolina Coutada Rodrigues" },
         { number: "", name: "Ana Carolina da Silva Veríssimo" },
@@ -209,9 +256,7 @@
         { number: "", name: "Melanie Ribeiro Martins" }
     ];
 
-    // Inicialização do App
     window.addEventListener('DOMContentLoaded', async () => {
-        // Define a data padrão para o dia de hoje (fuso local)
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('data-chamada').value = today;
 
@@ -227,14 +272,12 @@
         const q = query(collection(db, "athletes"), orderBy("name"));
         const querySnapshot = await getDocs(q);
         
-        // Se o banco estiver vazio, popula com a lista inicial enviada
         if (querySnapshot.empty) {
             document.getElementById('loading').innerText = "Criando lista inicial de atletas...";
             for (let item of initialAthletes) {
                 const newDocRef = doc(collection(db, "athletes"));
                 await setDoc(newDocRef, { number: item.number, name: item.name });
             }
-            // Recarrega após preencher
             const retrySnapshot = await getDocs(q);
             retrySnapshot.forEach((doc) => {
                 athletesList.push({ id: doc.id, ...doc.data() });
@@ -272,13 +315,9 @@
         if (!name) return alert("Por favor, preencha o nome da atleta.");
 
         document.getElementById('loading').style.display = "block";
-        document.getElementById('loading').innerText = "Salvando atleta...";
-
         if (id) {
-            // Edição
             await setDoc(doc(db, "athletes", id), { name, number });
         } else {
-            // Criação de nova
             const newDocRef = doc(collection(db, "athletes"));
             await setDoc(newDocRef, { name, number });
         }
@@ -306,7 +345,7 @@
     };
 
     window.deleteAthlete = async function(id) {
-        if(confirm("Deseja mesmo remover esta atleta do elenco?")) {
+        if(confirm("Deseja mesmo remover esta atleta?")) {
             document.getElementById('loading').style.display = "block";
             await deleteDoc(doc(db, "athletes", id));
             await loadAthletes();
@@ -315,7 +354,6 @@
         }
     };
 
-
     // --- CONTROLE DE PRESENÇA (CHAMADA) ---
     window.loadAttendanceDay = async function() {
         const dateStr = document.getElementById('data-chamada').value;
@@ -323,7 +361,6 @@
 
         const docRef = doc(db, "attendance", dateStr);
         const docSnap = await getDoc(docRef);
-
         const savedRecords = docSnap.exists() ? docSnap.data().records : {};
         
         const tbody = document.getElementById('tbody-chamada');
@@ -335,7 +372,7 @@
         }
 
         athletesList.forEach(athlete => {
-            const status = savedRecords[athlete.id] ? savedRecords[athlete.id].status : "P"; // Padrão Presença
+            const status = savedRecords[athlete.id] ? savedRecords[athlete.id].status : "P";
             const justification = savedRecords[athlete.id] ? (savedRecords[athlete.id].justification || "") : "";
 
             const tr = document.createElement('tr');
@@ -348,7 +385,7 @@
                         <option value="F" ${status === 'F' ? 'selected' : ''}>Falta</option>
                         <option value="J" ${status === 'J' ? 'selected' : ''}>Justificada</option>
                     </select>
-                    <input type="text" id="justif-${athlete.id}" class="justif-input" placeholder="Motivo da justificativa..." value="${justification}" style="display: ${status === 'J' ? 'block' : 'none'};">
+                    <input type="text" id="justif-${athlete.id}" class="justif-input" placeholder="Motivo do atestado ou falta..." value="${justification}" style="display: ${status === 'J' ? 'block' : 'none'};">
                 </td>
             `;
             tbody.appendChild(tr);
@@ -371,8 +408,6 @@
         if (!dateStr) return alert("Selecione uma data válida.");
 
         document.getElementById('loading').style.display = "block";
-        document.getElementById('loading').innerText = "Salvando lista de presença...";
-
         const records = {};
         athletesList.forEach(athlete => {
             const status = document.getElementById(`status-${athlete.id}`).value;
@@ -381,62 +416,91 @@
         });
 
         await setDoc(doc(db, "attendance", dateStr), { records });
-        
         document.getElementById('loading').style.display = "none";
         alert("Lista de presença salva com sucesso!");
-        await generateReport(); 
+        if(document.getElementById('tab-relatorio').classList.contains('active')) {
+            await generateReport();
+        }
     };
 
-
-    // --- GERADOR DE RELATÓRIOS ---
+    // --- GERADOR DE RELATÓRIOS COM HISTÓRICO DE DIAS ---
     window.generateReport = async function() {
         const filter = document.getElementById('filter-month').value;
         const reportHeader = document.getElementById('report-header');
         
         if (filter === "ALL") {
-            reportHeader.innerText = "Relatório Consolidado Geral (Todos os Treinos)";
+            reportHeader.innerText = "Relatório Consolidado Geral (Temporada Completa)";
         } else {
             const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-            reportHeader.innerText = `Relatório Mensal Correspondente ao mês de: ${monthNames[parseInt(filter) - 1]}`;
+            reportHeader.innerText = `Relatório de Presenças - Mês de: ${monthNames[parseInt(filter) - 1]}`;
         }
 
-        // Puxa todo o histórico do banco
         const querySnapshot = await getDocs(collection(db, "attendance"));
         
-        // Inicializa o contador para cada jogadora ativa no elenco
+        // Estrutura inicial do relatório
         const stats = {};
         athletesList.forEach(a => {
-            stats[a.id] = { p: 0, f: 0, j: 0, total: 0, name: a.name, number: a.number };
+            stats[a.id] = { p: 0, f: 0, j: 0, total: 0, name: a.name, number: a.number, absences: [] };
         });
 
+        // Agrupa os documentos ordenando por data
+        const sortedDocs = [];
         querySnapshot.forEach(docSnap => {
-            const dateKey = docSnap.id; // formato "AAAA-MM-DD"
-            const monthOfDoc = dateKey.split("-")[1];
+            sortedDocs.push({ id: docSnap.id, data: docSnap.data() });
+        });
+        
+        // Ordena por data crescente antes de listar
+        sortedDocs.sort((a, b) => a.id.localeCompare(b.id));
 
-            // Verifica se a data corresponde ao filtro escolhido
+        sortedDocs.forEach(docObj => {
+            const dateKey = docObj.id; // "AAAA-MM-DD"
+            const parts = dateKey.split("-");
+            const monthOfDoc = parts[1];
+            const formattedDate = `${parts[2]}/${parts[1]}`; // Converte para "DD/MM"
+
             if (filter === "ALL" || filter === monthOfDoc) {
-                const dayRecords = docSnap.data().records || {};
+                const dayRecords = docObj.data.records || {};
                 
                 Object.keys(dayRecords).forEach(athleteId => {
-                    // Contabiliza apenas se a atleta ainda existir na nossa lista principal
                     if (stats[athleteId]) {
                         const status = dayRecords[athleteId].status;
                         stats[athleteId].total++;
-                        if (status === 'P') stats[athleteId].p++;
-                        else if (status === 'F') stats[athleteId].f++;
-                        else if (status === 'J') stats[athleteId].j++;
+                        
+                        if (status === 'P') {
+                            stats[athleteId].p++;
+                        } else if (status === 'F') {
+                            stats[athleteId].f++;
+                            stats[athleteId].absences.push({ date: formattedDate, type: 'Falta', note: '' });
+                        } else if (status === 'J') {
+                            stats[athleteId].j++;
+                            const justif = dayRecords[athleteId].justification || "Sem motivo informado";
+                            stats[athleteId].absences.push({ date: formattedDate, type: 'Justificada', note: justif });
+                        }
                     }
                 });
             }
         });
 
-        // Renderiza na tabela de relatórios
         const tbody = document.getElementById('tbody-relatorio');
         tbody.innerHTML = "";
 
         athletesList.forEach(athlete => {
             const data = stats[athlete.id];
             const pct = data.total > 0 ? ((data.p / data.total) * 100).toFixed(1) : "0.0";
+            
+            // Monta a lista visual de histórico de faltas do atleta
+            let historyHTML = `<span style="color:#64748b; font-style:italic;">Nenhuma falta</span>`;
+            if (data.absences.length > 0) {
+                historyHTML = `<ul class="absence-history-list">`;
+                data.absences.forEach(abs => {
+                    if (abs.type === 'Justificada') {
+                        historyHTML += `<li><span class="badge badge-j">J</span> <span class="absence-date">${abs.date}</span>: <span class="absence-note">"${abs.note}"</span></li>`;
+                    } else {
+                        historyHTML += `<li><span class="badge badge-f">F</span> <span class="absence-date">${abs.date}</span>: <span class="absence-note" style="color:var(--danger)">Sem Justificativa</span></li>`;
+                    }
+                });
+                historyHTML += `</ul>`;
+            }
             
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -446,11 +510,11 @@
                 <td><span class="badge badge-f">${data.f}</span></td>
                 <td><span class="badge badge-j">${data.j}</span></td>
                 <td><b>${pct}%</b></td>
+                <td>${historyHTML}</td>
             `;
             tbody.appendChild(tr);
         });
     };
-
 
     // --- NAVEGAÇÃO DE ABAS ---
     window.switchTab = function(tabName) {
@@ -464,7 +528,6 @@
             generateReport();
         }
     };
-
 </script>
 </body>
 </html>
