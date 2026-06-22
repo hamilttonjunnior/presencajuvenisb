@@ -18,11 +18,11 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg); color: var(--text); padding: 20px; }
+        body { background-color: var(--bg); color: var(--text); padding: 15px; }
         .container { max-width: 1250px; margin: 0 auto; }
         
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-        .header-title-area { display: flex; align-items: center; gap: 20px; }
+        .header-title-area { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
         
         /* Espaço para a Logo do Clube */
         .club-logo {
@@ -45,57 +45,61 @@
             object-fit: contain;
         }
 
-        h1 { color: var(--primary); font-size: 26px; }
+        h1 { color: var(--primary); font-size: 24px; }
         
-        nav { display: flex; gap: 10px; margin-bottom: 20px; }
-        nav button { background: #e2e8f0; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; }
+        nav { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        nav button { background: #e2e8f0; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.2s; flex: 1; min-width: 130px; text-align: center; }
         nav button.active { background: var(--primary); color: white; }
         
-        .tab-content { display: none; background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .tab-content { display: none; background: var(--card-bg); padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .tab-content.active { display: block; }
 
         .form-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
         input, select { padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; outline: none; }
         input[type="text"] { flex: 1; min-width: 200px; }
         
-        button.btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+        button.btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.2s; width: auto; }
         button.btn:hover { background: var(--primary-hover); }
         button.btn-print { background: #475569; }
         button.btn-print:hover { background: #334155; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: left; }
+        /* Contêiner responsivo para tabelas */
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; border-radius: 6px; border: 1px solid var(--border); }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; min-width: 600px; }
+        #table-relatorio { min-width: 850px; } /* Garante espaçamento para o histórico em telas pequenas */
+
         th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: top; }
-        th { background-color: #f1f5f9; color: var(--primary); font-weight: 600; }
+        th { background-color: #f1f5f9; color: var(--primary); font-weight: 600; white-space: nowrap; }
         
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; display: inline-block; }
         .badge-p { background-color: var(--success); }
         .badge-f { background-color: var(--danger); }
         .badge-j { background-color: var(--warning); }
 
-        .actions-cell { display: flex; gap: 5px; }
-        .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; color: white; font-weight: 600; }
+        .actions-cell { display: flex; gap: 5px; flex-wrap: wrap; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; color: white; font-weight: 600; }
         .btn-edit { background-color: #0284c7; }
         .btn-delete { background-color: var(--danger); }
 
-        .justif-input { width: 100%; max-width: 250px; margin-top: 5px; display: none; }
+        .justif-input { width: 100%; max-width: 100%; margin-top: 5px; display: none; }
         
         /* Histórico de Faltas Listado no Relatório */
-        .absence-history-list {
-            list-style: none;
-            padding: 0;
-            font-size: 12px;
-        }
-        .absence-history-list li {
-            margin-bottom: 4px;
-            padding: 2px 0;
-        }
-        .absence-date {
-            font-weight: bold;
-            color: #334155;
-        }
-        .absence-note {
-            font-style: italic;
-            color: #64748b;
+        .absence-history-list { list-style: none; padding: 0; font-size: 12px; }
+        .absence-history-list li { margin-bottom: 4px; padding: 2px 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .absence-date { font-weight: bold; color: #334155; }
+        .absence-note { font-style: italic; color: #64748b; }
+
+        /* REGRAS DE MEDIA QUERIES PARA MOBILE */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .header-title-area { flex-direction: column; align-items: flex-start; gap: 10px; }
+            h1 { font-size: 20px; text-align: left; }
+            .form-group { flex-direction: column; align-items: stretch; }
+            .form-group * { width: 100% !important; }
+            button.btn { text-align: center; justify-content: center; }
+            .justif-input { max-width: 100%; }
         }
 
         /* Estilos de Impressão */
@@ -104,6 +108,8 @@
             nav, .form-group, .actions-cell, th:last-child, td:last-child, .no-print { display: none !important; }
             .tab-content { box-shadow: none; padding: 0; display: block !important; }
             .container { max-width: 100%; }
+            .table-responsive { border: none; overflow: visible; }
+            table { min-width: 100% !important; }
             th { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .club-logo { border: 1px solid #cbd5e1; }
         }
@@ -114,7 +120,6 @@
 <div class="container">
     <header>
         <div class="header-title-area">
-            <!-- Espaço reservado para colocar o arquivo ou link da Logo -->
             <div class="club-logo">
                 <img src="logo.png" alt="Logo FCA">
             </div>
@@ -129,31 +134,30 @@
         <button id="btn-tab-relatorio" onclick="switchTab('relatorio')">Relatório Mensal/Anual</button>
     </nav>
 
-    <!-- ABA CHAMADA -->
     <div id="tab-chamada" class="tab-content active">
         <div class="form-group">
             <label for="data-chamada"><b>Data do Treino:</b></label>
             <input type="date" id="data-chamada" onchange="loadAttendanceDay()">
             <span style="font-size: 12px; color: #64748b;">(Ter: 19h30 | Qua: 20h30 | Sex: 20h00)</span>
         </div>
-        <table id="table-chamada">
-            <thead>
-                <tr>
-                    <th style="width: 10%;">Nº Camisa</th>
-                    <th style="width: 40%;">Nome da Atleta</th>
-                    <th style="width: 50%;">Presença / Justificativa</th>
-                </tr>
-            </thead>
-            <tbody id="tbody-chamada">
-                <!-- Inserido dinamicamente -->
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table id="table-chamada">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Nº Camisa</th>
+                        <th style="width: 40%;">Nome da Atleta</th>
+                        <th style="width: 45%;">Presença / Justificativa</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-chamada">
+                    </tbody>
+            </table>
+        </div>
         <div style="margin-top: 20px;">
             <button class="btn" onclick="saveAttendance()">Salvar Lista de Presença</button>
         </div>
     </div>
 
-    <!-- ABA ATLETAS -->
     <div id="tab-atletas" class="tab-content">
         <div class="form-group">
             <input type="hidden" id="edit-athlete-id">
@@ -162,21 +166,21 @@
             <button class="btn" id="btn-save-athlete" onclick="saveAthlete()">Adicionar Atleta</button>
             <button class="btn btn-delete" id="btn-cancel-edit" style="display:none;" onclick="cancelAthleteEdit()">Cancelar</button>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 15%;">Nº Camisa</th>
-                    <th>Nome Completo</th>
-                    <th style="width: 20%;">Ações</th>
-                </tr>
-            </thead>
-            <tbody id="tbody-athletes">
-                <!-- Inserido dinamicamente -->
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Nº Camisa</th>
+                        <th>Nome Completo</th>
+                        <th style="width: 25%;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-athletes">
+                    </tbody>
+            </table>
+        </div>
     </div>
 
-    <!-- ABA RELATÓRIO -->
     <div id="tab-relatorio" class="tab-content">
         <div class="form-group no-print">
             <label for="filter-month"><b>Filtrar por Mês/Ano:</b></label>
@@ -198,31 +202,31 @@
             <button class="btn btn-print" onclick="window.print()">Imprimir Relatório</button>
         </div>
         <div id="report-header" style="margin-bottom: 15px; font-weight: bold; color: var(--primary); font-size: 16px;"></div>
-        <table id="table-relatorio">
-            <thead>
-                <tr>
-                    <th style="width: 8%;">Nº</th>
-                    <th style="width: 25%;">Nome da Atleta</th>
-                    <th style="width: 10%;">Presenças (P)</th>
-                    <th style="width: 10%;">Faltas (F)</th>
-                    <th style="width: 10%;">Justific. (J)</th>
-                    <th style="width: 12%;">% Presença</th>
-                    <th style="width: 25%;">Histórico Detalhado de Faltas (Dia/Mês)</th>
-                </tr>
-            </thead>
-            <tbody id="tbody-relatorio">
-                <!-- Inserido dinamicamente -->
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table id="table-relatorio">
+                <thead>
+                    <tr>
+                        <th style="width: 6%;">Nº</th>
+                        <th style="width: 24%;">Nome da Atleta</th>
+                        <th style="width: 10%;">Presenças (P)</th>
+                        <th style="width: 10%;">Faltas (F)</th>
+                        <th style="width: 10%;">Justific. (J)</th>
+                        <th style="width: 12%;">% Presença</th>
+                        <th style="width: 28%;">Histórico Detalhado de Faltas (Dia/Mês)</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-relatorio">
+                    </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<!-- Scripts do Firebase v10 usando ES Modules -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, doc, setDoc, getDocs, getDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Credenciais extraídas da imagem image_825320.png
+    // Credenciais do Firebase
     const firebaseConfig = {
         apiKey: "AizaSyDjkqF3GwMPuU74KBTVZA0Rz7Qq1g_y6rA",
         authDomain: "listapresenca-3b760.firebaseapp.com",
@@ -331,7 +335,7 @@
         document.getElementById('edit-athlete-id').value = id;
         document.getElementById('athlete-name').value = name;
         document.getElementById('athlete-number').value = number;
-        document.getElementById('btn-save-athlete').innerText = "Salvar Alterações";
+        document.getElementById('btn-save-athlete').innerText = "Salvar";
         document.getElementById('btn-cancel-edit').style.display = "inline-block";
     };
 
@@ -379,12 +383,12 @@
                 <td><b>${athlete.number || '-'}</b></td>
                 <td>${athlete.name}</td>
                 <td>
-                    <select id="status-${athlete.id}" onchange="toggleJustifyField('${athlete.id}')" style="width: 140px;">
+                    <select id="status-${athlete.id}" onchange="toggleJustifyField('${athlete.id}')" style="width: 100%; max-width: 140px;">
                         <option value="P" ${status === 'P' ? 'selected' : ''}>Presença</option>
                         <option value="F" ${status === 'F' ? 'selected' : ''}>Falta</option>
                         <option value="J" ${status === 'J' ? 'selected' : ''}>Justificada</option>
                     </select>
-                    <input type="text" id="justif-${athlete.id}" class="justif-input" placeholder="Motivo do atestado ou falta..." value="${justification}" style="display: ${status === 'J' ? 'block' : 'none'};">
+                    <input type="text" id="justif-${athlete.id}" class="justif-input" placeholder="Motivo..." value="${justification}" style="display: ${status === 'J' ? 'block' : 'none'};">
                 </td>
             `;
             tbody.appendChild(tr);
@@ -436,26 +440,23 @@
 
         const querySnapshot = await getDocs(collection(db, "attendance"));
         
-        // Estrutura inicial do relatório
         const stats = {};
         athletesList.forEach(a => {
             stats[a.id] = { p: 0, f: 0, j: 0, total: 0, name: a.name, number: a.number, absences: [] };
         });
 
-        // Agrupa os documentos ordenando por data
         const sortedDocs = [];
         querySnapshot.forEach(docSnap => {
             sortedDocs.push({ id: docSnap.id, data: docSnap.data() });
         });
         
-        // Ordena por data crescente antes de listar
         sortedDocs.sort((a, b) => a.id.localeCompare(b.id));
 
         sortedDocs.forEach(docObj => {
-            const dateKey = docObj.id; // "AAAA-MM-DD"
+            const dateKey = docObj.id; 
             const parts = dateKey.split("-");
             const monthOfDoc = parts[1];
-            const formattedDate = `${parts[2]}/${parts[1]}`; // Converte para "DD/MM"
+            const formattedDate = `${parts[2]}/${parts[1]}`; 
 
             if (filter === "ALL" || filter === monthOfDoc) {
                 const dayRecords = docObj.data.records || {};
@@ -487,7 +488,6 @@
             const data = stats[athlete.id];
             const pct = data.total > 0 ? ((data.p / data.total) * 100).toFixed(1) : "0.0";
             
-            // Monta a lista visual de histórico de faltas do atleta
             let historyHTML = `<span style="color:#64748b; font-style:italic;">Nenhuma falta</span>`;
             if (data.absences.length > 0) {
                 historyHTML = `<ul class="absence-history-list">`;
