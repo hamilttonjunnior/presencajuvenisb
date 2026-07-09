@@ -173,20 +173,8 @@
         <div class="form-group">
             <label for="filter-month"><b>Filtrar por Mês/Ano:</b></label>
             <select id="filter-month" onchange="generateReport()">
-                <option value="ALL">Ano Completo (Todos)</option>
-                <option value="01">Janeiro</option>
-                <option value="02">Fevereiro</option>
-                <option value="03">Março</option>
-                <option value="04">Abril</option>
-                <option value="05">Maio</option>
-                <option value="06">Junho</option>
-                <option value="07">Julho</option>
-                <option value="08">Agosto</option>
-                <option value="09">Setembro</option>
-                <option value="10">Outubro</option>
-                <option value="11">Novembro</option>
-                <option value="12">Dezembro</option>
-            </select>
+                <option value="ALL">Todo o Histórico Completo</option>
+                </select>
             <button class="btn btn-print" onclick="printReportOnly()">Gerar Página de Impressão</button>
         </div>
         <div id="report-header" style="margin-bottom: 15px; font-weight: bold; color: var(--primary); font-size: 16px;"></div>
@@ -410,20 +398,66 @@
         document.getElementById('loading').style.display = "none";
         alert("Lista de presença salva com sucesso!");
         if(document.getElementById('tab-relatorio').classList.contains('active')) {
-            await generateReport();
+            await populateFilterOptions(true);
         }
     };
 
-    // --- GERADOR DE RELATÓRIOS COM HISTÓRICO DE DIAS ---
+    // --- NOVA FUNÇÃO AUXILIAR: CRIA AS OPÇÕES DE FILTRO POR MÊS/ANO BASEADO NAS DATAS EXISTENTES ---
+    async function populateFilterOptions(keepSelection = false) {
+        const select = document.getElementById('filter-month');
+        const currentValue = select.value;
+
+        const querySnapshot = await getDocs(collection(db, "attendance"));
+        const availableMonths = new Set(); // Evita repetições
+
+        querySnapshot.forEach(docSnap => {
+            const dateKey = docSnap.id; // Formato: AAAA-MM-DD
+            const parts = dateKey.split("-");
+            if (parts.length === 3) {
+                const yearMonth = `${parts[1]}/${parts[0]}`; // Formato: MM/AAAA
+                availableMonths.add(yearMonth);
+            }
+        });
+
+        // Ordena os meses cronologicamente para exibição técnica correta
+        const sortedMonths = Array.from(availableMonths).sort((a, b) => {
+            const [mA, yA] = a.split("/");
+            const [mB, yB] = b.split("/");
+            return new Date(yA, mA - 1) - new Date(yB, mB - 1);
+        });
+
+        // Limpa as opções dinâmicas antigas mantendo apenas a primeira ("ALL")
+        select.innerHTML = '<option value="ALL">Todo o Histórico Completo</option>';
+
+        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+        sortedMonths.forEach(ym => {
+            const [m, y] = ym.split("/");
+            const name = `${monthNames[parseInt(m) - 1]} / ${y}`;
+            const option = document.createElement('option');
+            option.value = ym; // Guarda "MM/AAAA" como valor de controlo
+            option.innerText = name;
+            select.appendChild(option);
+        });
+
+        if (keepSelection) {
+            select.value = currentValue;
+        }
+
+        await generateReport();
+    }
+
+    // --- GERADOR DE RELATÓRIOS ADAPTADO PARA MÊS/ANO ---
     window.generateReport = async function() {
         const filter = document.getElementById('filter-month').value;
         const reportHeader = document.getElementById('report-header');
         
         if (filter === "ALL") {
-            reportHeader.innerText = "Relatório Consolidado Geral (Temporada Completa)";
+            reportHeader.innerText = "Relatório Consolidado Geral (Histórico Completo)";
         } else {
+            const [fMonth, fYear] = filter.split("/");
             const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-            reportHeader.innerText = `Relatório de Presenças - Mês de: ${monthNames[parseInt(filter) - 1]}`;
+            reportHeader.innerText = `Relatório de Presenças - Mês de: ${monthNames[parseInt(fMonth) - 1]} de ${fYear}`;
         }
 
         const querySnapshot = await getDocs(collection(db, "attendance"));
@@ -444,9 +478,12 @@
             const dateKey = docObj.id; 
             const parts = dateKey.split("-");
             const monthOfDoc = parts[1];
+            const yearOfDoc = parts[0];
+            const currentDocYM = `${monthOfDoc}/${yearOfDoc}`;
             const formattedDate = `${parts[2]}/${parts[1]}`; 
 
-            if (filter === "ALL" || filter === monthOfDoc) {
+            // Valida se corresponde ao filtro exato de Mês/Ano selecionado
+            if (filter === "ALL" || filter === currentDocYM) {
                 const dayRecords = docObj.data.records || {};
                 
                 Object.keys(dayRecords).forEach(athleteId => {
@@ -503,16 +540,14 @@
         });
     };
 
-    // --- NOVA FUNÇÃO: GERA PÁGINA LIMPA SÓ COM O RELATÓRIO PARA IMPRESSÃO/PDF ---
+    // --- GERA PÁGINA LIMPA SÓ COM O RELATÓRIO PARA IMPRESSÃO/PDF ---
     window.printReportOnly = function() {
         const reportTitle = document.getElementById('report-header').innerText;
         const reportTableHTML = document.getElementById('table-relatorio').outerHTML;
         const logoHTML = document.querySelector('.club-logo').outerHTML;
 
-        // Abre uma nova janela no navegador
         const printWindow = window.open('', '_blank');
 
-        // Escreve o HTML limpo, aplicando estilos específicos e profissionais de folha A4
         printWindow.document.write(`
             <!DOCTYPE html>
             <html>
@@ -548,11 +583,8 @@
                 </header>
                 ${reportTableHTML}
                 <script>
-                    // Executa a janela de impressão assim que o conteúdo estiver carregado
                     window.onload = function() {
                         window.print();
-                        // Opcional: fecha a aba automaticamente após imprimir/cancelar
-                        // window.close(); 
                     };
                 <\/script>
             </body>
@@ -571,7 +603,7 @@
         document.getElementById(`tab-${tabName}`).classList.add('active');
 
         if(tabName === 'relatorio') {
-            generateReport();
+            populateFilterOptions();
         }
     };
 </script>
