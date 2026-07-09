@@ -105,7 +105,9 @@
         /* Estilos de Impressão */
         @media print {
             body { background: white; color: black; padding: 0; }
-            nav, .form-group, .actions-cell, th:last-child, td:last-child, .no-print { display: none !important; }
+            nav, .form-group, .actions-cell, .no-print { display: none !important; }
+            /* Oculta apenas a coluna de ações da tabela de atletas, mantendo o histórico do relatório */
+            #tab-atletas th:last-child, #tab-atletas td:last-child { display: none !important; }
             .tab-content { box-shadow: none; padding: 0; display: block !important; }
             .container { max-width: 100%; }
             .table-responsive { border: none; overflow: visible; }
