@@ -118,6 +118,9 @@
         .card-form h3 { font-size: 15px; color: var(--primary); margin-bottom: 10px; }
         .card-form .form-group { flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 0; }
         .card-form input, .card-form select { width: 100%; }
+        .card-form .date-range { display: flex; gap: 5px; width: 100%; }
+        .card-form .date-range div { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+        .card-form .date-range label { font-size: 11px; font-weight: bold; color: #64748b; }
 
         .calendar-nav-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .calendar-nav-controls h2 { font-size: 18px; color: var(--primary); }
@@ -185,7 +188,7 @@
         </div>
     </div>
 
-    <!-- TAB: CALENDÁRIO (NOVA) -->
+    <!-- TAB: CALENDÁRIO -->
     <div id="tab-calendar" class="tab-content">
         <!-- Painel de Notificação Rápida de Próximas Datas -->
         <div class="notification-panel" id="niver-panel" style="display: none;">
@@ -211,8 +214,20 @@
                 <div class="card-form">
                     <h3>➕ Novo Evento / Jogo</h3>
                     <div class="form-group">
-                        <input type="text" id="event-title" placeholder="Título do Evento (ex: Jogo vs Braga)">
-                        <input type="date" id="event-date">
+                        <input type="text" id="event-title" placeholder="Título do Evento (ex: Torneio de Verão)">
+                        
+                        <!-- Ajuste para intervalo de datas -->
+                        <div class="date-range">
+                            <div>
+                                <label for="event-date">Início:</label>
+                                <input type="date" id="event-date">
+                            </div>
+                            <div>
+                                <label for="event-date-end">Fim (Opcional):</label>
+                                <input type="date" id="event-date-end">
+                            </div>
+                        </div>
+
                         <input type="time" id="event-time">
                         <input type="text" id="event-location" placeholder="Local/Pavilhão">
                         <select id="event-category">
@@ -237,7 +252,7 @@
         </div>
     </div>
 
-    <!-- TAB: ATLETAS (EDITADA PARA ANIVERSÁRIO) -->
+    <!-- TAB: ATLETAS -->
     <div id="tab-atletas" class="tab-content">
         <div class="form-group">
             <input type="hidden" id="edit-athlete-id">
@@ -314,7 +329,7 @@
 
     let athletesList = [];
     let eventsList = [];
-    let currentCalDate = new Date(); // Guarda o mês ativo do calendário visual
+    let currentCalDate = new Date();
 
     const initialAthletes = [
         { number: "", name: "Carolina Coutada Rodrigues", birthdate: "" },
@@ -330,7 +345,7 @@
         { number: "", name: "Diana Rafaela da Silva Dantas", birthdate: "" },
         { number: "", name: "Iara e Castro Barreiro Pereira", birthdate: "" },
         { number: "", name: "Maria Faria Silva", birthdate: "" },
-        { number: "", name: "Melanie Ribeiro Martins", birthdate: "" }
+        { number: "", name: "Melanie Ribeiro Martins" }
     ];
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -525,19 +540,32 @@
     window.saveNewEvent = async function() {
         const title = document.getElementById('event-title').value.trim();
         const date = document.getElementById('event-date').value;
+        const dateEnd = document.getElementById('event-date-end').value;
         const time = document.getElementById('event-time').value;
         const location = document.getElementById('event-location').value.trim();
         const category = document.getElementById('event-category').value;
 
-        if (!title || !date) return alert("Por favor, preencha no mínimo o Título e a Data do evento.");
+        if (!title || !date) return alert("Por favor, preencha no mínimo o Título e a Data de Início do evento.");
 
         document.getElementById('loading').style.display = "block";
         const newDocRef = doc(collection(db, "events"));
-        await setDoc(newDocRef, { title, date, time, location, category });
+        
+        // Salva a data de fim ou repete a de início caso esteja em branco
+        const finalEndDate = dateEnd ? dateEnd : date;
 
-        // Limpa campos
+        await setDoc(newDocRef, { 
+            title, 
+            date, 
+            endDate: finalEndDate, 
+            time, 
+            location, 
+            category 
+        });
+
+        // Limpa os campos
         document.getElementById('event-title').value = "";
         document.getElementById('event-date').value = "";
+        document.getElementById('event-date-end').value = "";
         document.getElementById('event-time').value = "";
         document.getElementById('event-location').value = "";
 
@@ -559,6 +587,14 @@
         renderCalendar();
     }
 
+    // Função Auxiliar para verificar se uma data específica está dentro de um intervalo
+    function isDateInInterval(targetDateStr, startDateStr, endDateStr) {
+        const target = new Date(targetDateStr + "T00:00:00");
+        const start = new Date(startDateStr + "T00:00:00");
+        const end = new Date(endDateStr + "T00:00:00");
+        return target >= start && target <= end;
+    }
+
     function renderCalendar() {
         const gridHeader = document.getElementById('calendar-grid-header');
         const gridDays = document.getElementById('calendar-grid-days');
@@ -573,13 +609,11 @@
         const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         monthYearLabel.innerText = `${monthNames[month]} de ${year}`;
 
-        // Primeiro dia da semana do mês e número de dias totais
         const firstDayIdx = new Date(year, month, 1).getDay();
         const totalDays = new Date(year, month + 1, 0).getDate();
 
         gridDays.innerHTML = "";
 
-        // Espaços vazios no início do mês
         for (let i = 0; i < firstDayIdx; i++) {
             const emptyCell = document.createElement('div');
             emptyCell.className = "calendar-day empty";
@@ -588,7 +622,6 @@
 
         const todayStr = new Date().toISOString().split('T')[0];
 
-        // Geração dos dias reais
         for (let day = 1; day <= totalDays; day++) {
             const dayCell = document.createElement('div');
             const thisDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -616,15 +649,23 @@
                 }
             });
 
-            // 2. Procurar eventos criados no Firestore para este dia
+            // 2. Procurar eventos (Suporta eventos de múltiplos dias)
             eventsList.forEach(ev => {
-                if (ev.date === thisDateStr) {
+                const start = ev.date;
+                const end = ev.endDate ? ev.endDate : ev.date;
+                
+                if (isDateInInterval(thisDateStr, start, end)) {
                     const div = document.createElement('div');
                     div.className = `event-item-micro badge-${ev.category}`;
                     div.style.cursor = "pointer";
+                    
                     const hora = ev.time ? `${ev.time} ` : "";
                     const local = ev.location ? ` @ ${ev.location}` : "";
-                    div.title = `${ev.title} (${hora}${local}) - Clique para excluir`;
+                    
+                    // Exibir se é um intervalo longo para melhor visualização
+                    const dRangeText = (start !== end) ? ` (${start.split('-')[2]}/${start.split('-')[1]} a ${end.split('-')[2]}/${end.split('-')[1]})` : "";
+                    
+                    div.title = `${ev.title}${dRangeText} (${hora}${local}) - Clique para excluir`;
                     div.innerText = `${hora}${ev.title}`;
                     
                     div.onclick = (e) => {
@@ -651,16 +692,14 @@
 
         const notifications = [];
         const now = new Date();
-        const timeLimit = 10 * 24 * 60 * 60 * 1000; // 10 Dias em milissegundos
+        const timeLimit = 10 * 24 * 60 * 60 * 1000;
 
-        // Analisar aniversariantes do ano corrente
+        // Analisar aniversariantes
         athletesList.forEach(athlete => {
             if (athlete.birthdate) {
                 const [aY, aM, aD] = athlete.birthdate.split("-");
-                // Cria data no ano atual
                 const targetDate = new Date(now.getFullYear(), parseInt(aM) - 1, parseInt(aD));
                 
-                // Se o aniversário do ano atual já passou, calcular para o próximo ano
                 if (targetDate.getTime() - now.getTime() < -86400000) {
                     targetDate.setFullYear(now.getFullYear() + 1);
                 }
@@ -678,12 +717,16 @@
             }
         });
 
-        // Analisar eventos criados
+        // Analisar eventos criados (incluindo intervalos ativos nos próximos 10 dias)
         eventsList.forEach(ev => {
             const evDate = new Date(ev.date + "T00:00:00");
+            const evEndDate = new Date((ev.endDate || ev.date) + "T00:00:00");
             const diffTime = evDate.getTime() - now.getTime();
-            if (diffTime >= -86400000 && diffTime <= timeLimit) {
+            
+            // Ativo se a data de início está próxima, ou se já começou mas ainda não terminou
+            if ((diffTime >= -86400000 && diffTime <= timeLimit) || (now >= evDate && now <= evEndDate)) {
                 const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
                 let label = "🏆 Jogo/Torneio";
                 let style = "color: var(--danger); font-weight: bold;";
                 if (ev.category === "treino") {
@@ -694,16 +737,25 @@
                     style = "color: var(--purple); font-weight: bold;";
                 }
 
+                let statusText = "";
+                if (now >= evDate && now <= evEndDate) {
+                    statusText = "A Decorrer!";
+                } else {
+                    statusText = daysLeft === 0 ? "Hoje!" : `em ${daysLeft} dias`;
+                }
+
+                // Texto formatado de datas de início e fim se for um intervalo longo
+                const rangeStr = ev.endDate && ev.endDate !== ev.date ? ` (de ${ev.date.split('-')[2]}/${ev.date.split('-')[1]} a ${ev.endDate.split('-')[2]}/${ev.endDate.split('-')[1]})` : "";
+
                 notifications.push({
                     type: label,
-                    title: `${ev.title} ${ev.time ? "às " + ev.time : ""} (${daysLeft === 0 ? "Hoje!" : "em " + daysLeft + " dias"})${ev.location ? ' - Local: ' + ev.location : ''}`,
+                    title: `${ev.title}${rangeStr} ${ev.time ? "às " + ev.time : ""} (${statusText})${ev.location ? ' - Local: ' + ev.location : ''}`,
                     date: evDate,
                     style: style
                 });
             }
         });
 
-        // Organizar por proximidade
         notifications.sort((a, b) => a.date - b.date);
 
         if (notifications.length > 0) {
