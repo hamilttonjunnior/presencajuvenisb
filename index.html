@@ -119,9 +119,11 @@
         .card-form h3 { font-size: 15px; color: var(--primary); margin-bottom: 10px; }
         .card-form .form-group { flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 0; }
         .card-form input, .card-form select { width: 100%; }
-        .card-form .date-range { display: flex; gap: 5px; width: 100%; }
-        .card-form .date-range div { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-        .card-form .date-range label { font-size: 11px; font-weight: bold; color: #64748b; }
+        
+        /* Grids para intervalo de data e hora */
+        .card-form .form-row-double { display: flex; gap: 5px; width: 100%; }
+        .card-form .form-row-double div { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+        .card-form .form-row-double label { font-size: 11px; font-weight: bold; color: #64748b; }
 
         .calendar-nav-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .calendar-nav-controls h2 { font-size: 18px; color: var(--primary); }
@@ -218,18 +220,29 @@
                         <input type="text" id="event-title" placeholder="Título do Evento (ex: Torneio de Verão)">
                         
                         <!-- Intervalo de datas -->
-                        <div class="date-range">
+                        <div class="form-row-double">
                             <div>
-                                <label for="event-date">Início:</label>
+                                <label for="event-date">Data Início:</label>
                                 <input type="date" id="event-date">
                             </div>
                             <div>
-                                <label for="event-date-end">Fim (Opcional):</label>
+                                <label for="event-date-end">Data Fim:</label>
                                 <input type="date" id="event-date-end">
                             </div>
                         </div>
 
-                        <input type="time" id="event-time">
+                        <!-- Intervalo de horas -->
+                        <div class="form-row-double">
+                            <div>
+                                <label for="event-time">Hora Início:</label>
+                                <input type="time" id="event-time">
+                            </div>
+                            <div>
+                                <label for="event-time-end">Hora Fim:</label>
+                                <input type="time" id="event-time-end">
+                            </div>
+                        </div>
+
                         <input type="text" id="event-location" placeholder="Local/Pavilhão">
                         <select id="event-category">
                             <option value="treino">🏐 Treino Regular</option>
@@ -545,6 +558,7 @@
         const date = document.getElementById('event-date').value;
         const dateEnd = document.getElementById('event-date-end').value;
         const time = document.getElementById('event-time').value;
+        const timeEnd = document.getElementById('event-time-end').value;
         const location = document.getElementById('event-location').value.trim();
         const category = document.getElementById('event-category').value;
 
@@ -554,12 +568,14 @@
         const newDocRef = doc(collection(db, "events"));
         
         const finalEndDate = dateEnd ? dateEnd : date;
+        const finalEndTime = timeEnd ? timeEnd : "";
 
         await setDoc(newDocRef, { 
             title, 
             date, 
             endDate: finalEndDate, 
             time, 
+            endTime: finalEndTime,
             location, 
             category 
         });
@@ -568,6 +584,7 @@
         document.getElementById('event-date').value = "";
         document.getElementById('event-date-end').value = "";
         document.getElementById('event-time').value = "";
+        document.getElementById('event-time-end').value = "";
         document.getElementById('event-location').value = "";
 
         await loadEvents();
@@ -659,13 +676,21 @@
                     div.className = `event-item-micro badge-${ev.category}`;
                     div.style.cursor = "pointer";
                     
-                    const hora = ev.time ? `${ev.time} ` : "";
+                    // Formatação do horário com início e fim
+                    let horaStr = "";
+                    if (ev.time) {
+                        horaStr = ev.time;
+                        if (ev.endTime) {
+                            horaStr += `-${ev.endTime}`;
+                        }
+                        horaStr += " ";
+                    }
+
                     const local = ev.location ? ` @ ${ev.location}` : "";
-                    
                     const dRangeText = (start !== end) ? ` (${start.split('-')[2]}/${start.split('-')[1]} a ${end.split('-')[2]}/${end.split('-')[1]})` : "";
                     
-                    div.title = `${ev.title}${dRangeText} (${hora}${local}) - Clique para excluir`;
-                    div.innerText = `${hora}${ev.title}`;
+                    div.title = `${ev.title}${dRangeText} (${horaStr}${local}) - Clique para excluir`;
+                    div.innerText = `${horaStr}${ev.title}`;
                     
                     div.onclick = (e) => {
                         e.stopPropagation();
@@ -746,10 +771,19 @@
                 }
 
                 const rangeStr = ev.endDate && ev.endDate !== ev.date ? ` (de ${ev.date.split('-')[2]}/${ev.date.split('-')[1]} a ${ev.endDate.split('-')[2]}/${ev.endDate.split('-')[1]})` : "";
+                
+                // Formatação do horário na notificação
+                let timeStr = "";
+                if (ev.time) {
+                    timeStr = ` às ${ev.time}`;
+                    if (ev.endTime) {
+                        timeStr += `-${ev.endTime}`;
+                    }
+                }
 
                 notifications.push({
                     type: label,
-                    title: `${ev.title}${rangeStr} ${ev.time ? "às " + ev.time : ""} (${statusText})${ev.location ? ' - Local: ' + ev.location : ''}`,
+                    title: `${ev.title}${rangeStr}${timeStr} (${statusText})${ev.location ? ' - Local: ' + ev.location : ''}`,
                     date: evDate,
                     style: style
                 });
