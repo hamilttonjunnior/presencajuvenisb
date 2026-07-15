@@ -79,6 +79,7 @@
         
         /* Badges de Categorias de Eventos */
         .badge-treino { background-color: var(--primary); }
+        .badge-treino-extra { background-color: var(--info); }
         .badge-torneio { background-color: var(--danger); }
         .badge-extra { background-color: var(--purple); }
         .badge-niver { background-color: #db2777; }
@@ -216,7 +217,7 @@
                     <div class="form-group">
                         <input type="text" id="event-title" placeholder="Título do Evento (ex: Torneio de Verão)">
                         
-                        <!-- Ajuste para intervalo de datas -->
+                        <!-- Intervalo de datas -->
                         <div class="date-range">
                             <div>
                                 <label for="event-date">Início:</label>
@@ -231,7 +232,8 @@
                         <input type="time" id="event-time">
                         <input type="text" id="event-location" placeholder="Local/Pavilhão">
                         <select id="event-category">
-                            <option value="treino">🏐 Treino Extra</option>
+                            <option value="treino">🏐 Treino Regular</option>
+                            <option value="treino-extra">🏐 Treino Extra</option>
                             <option value="torneio">🏆 Torneio / Jogo</option>
                             <option value="extra">🌟 Extra-Vôlei (Convívio/Reunião)</option>
                         </select>
@@ -242,10 +244,11 @@
                 <div class="card-form" style="background-color: #f1f5f9;">
                     <h3>📋 Legenda</h3>
                     <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; margin-top: 5px;">
-                        <div><span class="badge badge-treino" style="width: 75px; text-align: center;">Treinos</span> Treinos do time</div>
-                        <div><span class="badge badge-torneio" style="width: 75px; text-align: center;">Torneios</span> Jogos e competições</div>
-                        <div><span class="badge badge-extra" style="width: 75px; text-align: center;">Extras</span> Reuniões ou lazer</div>
-                        <div><span class="badge badge-niver" style="width: 75px; text-align: center;">Parabéns</span> Aniversários das miúdas</div>
+                        <div><span class="badge badge-treino" style="width: 110px; text-align: center;">Treino Regular</span> Treino semanal normal</div>
+                        <div><span class="badge badge-treino-extra" style="width: 110px; text-align: center;">Treino Extra</span> Treinos marcados à parte</div>
+                        <div><span class="badge badge-torneio" style="width: 110px; text-align: center;">Torneios</span> Jogos e competições</div>
+                        <div><span class="badge badge-extra" style="width: 110px; text-align: center;">Extras</span> Reuniões ou lazer</div>
+                        <div><span class="badge badge-niver" style="width: 110px; text-align: center;">Parabéns</span> Aniversários das miúdas</div>
                     </div>
                 </div>
             </div>
@@ -550,7 +553,6 @@
         document.getElementById('loading').style.display = "block";
         const newDocRef = doc(collection(db, "events"));
         
-        // Salva a data de fim ou repete a de início caso esteja em branco
         const finalEndDate = dateEnd ? dateEnd : date;
 
         await setDoc(newDocRef, { 
@@ -562,7 +564,6 @@
             category 
         });
 
-        // Limpa os campos
         document.getElementById('event-title').value = "";
         document.getElementById('event-date').value = "";
         document.getElementById('event-date-end').value = "";
@@ -587,7 +588,6 @@
         renderCalendar();
     }
 
-    // Função Auxiliar para verificar se uma data específica está dentro de um intervalo
     function isDateInInterval(targetDateStr, startDateStr, endDateStr) {
         const target = new Date(targetDateStr + "T00:00:00");
         const start = new Date(startDateStr + "T00:00:00");
@@ -649,7 +649,7 @@
                 }
             });
 
-            // 2. Procurar eventos (Suporta eventos de múltiplos dias)
+            // 2. Procurar eventos
             eventsList.forEach(ev => {
                 const start = ev.date;
                 const end = ev.endDate ? ev.endDate : ev.date;
@@ -662,7 +662,6 @@
                     const hora = ev.time ? `${ev.time} ` : "";
                     const local = ev.location ? ` @ ${ev.location}` : "";
                     
-                    // Exibir se é um intervalo longo para melhor visualização
                     const dRangeText = (start !== end) ? ` (${start.split('-')[2]}/${start.split('-')[1]} a ${end.split('-')[2]}/${end.split('-')[1]})` : "";
                     
                     div.title = `${ev.title}${dRangeText} (${hora}${local}) - Clique para excluir`;
@@ -717,21 +716,23 @@
             }
         });
 
-        // Analisar eventos criados (incluindo intervalos ativos nos próximos 10 dias)
+        // Analisar eventos criados
         eventsList.forEach(ev => {
             const evDate = new Date(ev.date + "T00:00:00");
             const evEndDate = new Date((ev.endDate || ev.date) + "T00:00:00");
             const diffTime = evDate.getTime() - now.getTime();
             
-            // Ativo se a data de início está próxima, ou se já começou mas ainda não terminou
             if ((diffTime >= -86400000 && diffTime <= timeLimit) || (now >= evDate && now <= evEndDate)) {
                 const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 
                 let label = "🏆 Jogo/Torneio";
                 let style = "color: var(--danger); font-weight: bold;";
                 if (ev.category === "treino") {
-                    label = "🏐 Treino Extra";
+                    label = "🏐 Treino Regular";
                     style = "color: var(--primary); font-weight: bold;";
+                } else if (ev.category === "treino-extra") {
+                    label = "🏐 Treino Extra";
+                    style = "color: var(--info); font-weight: bold;";
                 } else if (ev.category === "extra") {
                     label = "🌟 Evento Extra";
                     style = "color: var(--purple); font-weight: bold;";
@@ -744,7 +745,6 @@
                     statusText = daysLeft === 0 ? "Hoje!" : `em ${daysLeft} dias`;
                 }
 
-                // Texto formatado de datas de início e fim se for um intervalo longo
                 const rangeStr = ev.endDate && ev.endDate !== ev.date ? ` (de ${ev.date.split('-')[2]}/${ev.date.split('-')[1]} a ${ev.endDate.split('-')[2]}/${ev.endDate.split('-')[1]})` : "";
 
                 notifications.push({
