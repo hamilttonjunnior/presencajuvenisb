@@ -339,7 +339,18 @@
             <select id="filter-month" onchange="generateReport()">
                 <option value="ALL">Todo o Histórico Completo</option>
             </select>
-            <button class="btn btn-print" onclick="printReportOnly()">Gerar Página de Impressão</button>
+            
+            <label for="search-athlete-name" style="margin-left: 10px;"><b>Buscar Atleta:</b></label>
+            <input type="text" id="search-athlete-name" placeholder="Nome da atleta..." oninput="generateReport()" style="max-width: 200px;">
+            
+            <label for="sort-relatorio" style="margin-left: 10px;"><b>Ordenar por:</b></label>
+            <select id="sort-relatorio" onchange="generateReport()">
+                <option value="name">Nome (A-Z)</option>
+                <option value="faltas">Mais Faltas (F + J)</option>
+                <option value="presencas">Mais Presenças (P)</option>
+            </select>
+
+            <button class="btn btn-print" onclick="printReportOnly()" style="margin-left: auto;">Gerar Página de Impressão</button>
         </div>
         <div id="report-header" style="margin-bottom: 15px; font-weight: bold; color: var(--primary); font-size: 16px;"></div>
         <div class="table-responsive">
@@ -1086,6 +1097,8 @@
 
     window.generateReport = async function() {
         const filter = document.getElementById('filter-month').value;
+        const searchQuery = (document.getElementById('search-athlete-name').value || "").toLowerCase().trim();
+        const sortType = document.getElementById('sort-relatorio').value;
         const reportHeader = document.getElementById('report-header');
         
         if (filter === "ALL") {
@@ -1100,7 +1113,7 @@
         
         const stats = {};
         athletesList.forEach(a => {
-            stats[a.id] = { p: 0, f: 0, j: 0, total: 0, name: a.name, number: a.number, absences: [] };
+            stats[a.id] = { id: a.id, p: 0, f: 0, j: 0, total: 0, name: a.name, number: a.number, absences: [] };
         });
 
         const sortedDocs = [];
@@ -1144,8 +1157,32 @@
         const tbody = document.getElementById('tbody-relatorio');
         tbody.innerHTML = "";
 
-        athletesList.forEach(athlete => {
-            const data = stats[athlete.id];
+        // Transformar objeto de estatísticas em array para filtrar e ordenar
+        let reportData = Object.values(stats);
+
+        // 1. Aplicação da Busca Por Nome da Atleta
+        if (searchQuery) {
+            reportData = reportData.filter(item => item.name.toLowerCase().includes(searchQuery));
+        }
+
+        // 2. Aplicação da Ordenação
+        reportData.sort((a, b) => {
+            if (sortType === 'faltas') {
+                const totalFaltasA = a.f + a.j;
+                const totalFaltasB = b.f + b.j;
+                if (totalFaltasB !== totalFaltasA) {
+                    return totalFaltasB - totalFaltasA; // Mais faltas primeiro
+                }
+            } else if (sortType === 'presencas') {
+                if (b.p !== a.p) {
+                    return b.p - a.p; // Mais presenças primeiro
+                }
+            }
+            // Padrão ou desempate por Nome (A-Z)
+            return a.name.localeCompare(b.name);
+        });
+
+        reportData.forEach(data => {
             const pct = data.total > 0 ? ((data.p / data.total) * 100).toFixed(1) : "0.0";
             
             let historyHTML = `<span style="color:#64748b; font-style:italic;">Nenhuma falta</span>`;
