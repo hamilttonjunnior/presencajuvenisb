@@ -1088,8 +1088,19 @@
             select.appendChild(option);
         });
 
-        if (keepSelection) {
+        // LÓGICA DE SELEÇÃO:
+        if (keepSelection && currentValue) {
             select.value = currentValue;
+        } else {
+            // Se for a primeira vez abrindo a aba, seleciona o mês atual automaticamente
+            const now = new Date();
+            const currentYM = `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+            if (availableMonths.has(currentYM)) {
+                select.value = currentYM;
+            } else if (sortedMonths.length > 0) {
+                // Se o mês atual ainda não tem chamadas salvas, seleciona o mês mais recente disponível
+                select.value = sortedMonths[sortedMonths.length - 1];
+            }
         }
 
         await generateReport();
