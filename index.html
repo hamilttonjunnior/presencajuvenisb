@@ -1157,28 +1157,24 @@
         const tbody = document.getElementById('tbody-relatorio');
         tbody.innerHTML = "";
 
-        // Transformar objeto de estatísticas em array para filtrar e ordenar
         let reportData = Object.values(stats);
 
-        // 1. Aplicação da Busca Por Nome da Atleta
         if (searchQuery) {
             reportData = reportData.filter(item => item.name.toLowerCase().includes(searchQuery));
         }
 
-        // 2. Aplicação da Ordenação
         reportData.sort((a, b) => {
             if (sortType === 'faltas') {
                 const totalFaltasA = a.f + a.j;
                 const totalFaltasB = b.f + b.j;
                 if (totalFaltasB !== totalFaltasA) {
-                    return totalFaltasB - totalFaltasA; // Mais faltas primeiro
+                    return totalFaltasB - totalFaltasA;
                 }
             } else if (sortType === 'presencas') {
                 if (b.p !== a.p) {
-                    return b.p - a.p; // Mais presenças primeiro
+                    return b.p - a.p;
                 }
             }
-            // Padrão ou desempate por Nome (A-Z)
             return a.name.localeCompare(b.name);
         });
 
