@@ -10,6 +10,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://hamilttonjunnior.github.io/presencajuvenisb/">
 
+    <!-- Fonte Moderna Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -193,6 +194,7 @@
 </head>
 <body>
 
+<!-- TELA DE AUTENTICAÇÃO POR SENHA -->
 <div id="login-screen">
     <div class="login-card">
         <h2>Acesso Restrito</h2>
@@ -227,6 +229,7 @@
         <button id="btn-tab-relatorio" onclick="switchTab('relatorio')">Relatório Mensal/Anual</button>
     </nav>
 
+    <!-- ABA 1: CHAMADA -->
     <div id="tab-chamada" class="tab-content active">
         <div class="form-group">
             <label for="data-chamada"><b>Data do Treino:</b></label>
@@ -250,6 +253,7 @@
         </div>
     </div>
 
+    <!-- ABA 2: CALENDÁRIO -->
     <div id="tab-calendar" class="tab-content">
         <div class="notification-panel" id="niver-panel" style="display: none;">
             <h3>🔔 Alertas e Próximos Eventos (Próximos 10 dias)</h3>
@@ -297,6 +301,7 @@
                             </div>
                         </div>
 
+                        <!-- Opção de Recorrência Seletiva -->
                         <div>
                             <label style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Repetição / Recorrência:</label>
                             <select id="event-recurrence">
@@ -333,6 +338,7 @@
         </div>
     </div>
 
+    <!-- ABA 3: ATLETAS -->
     <div id="tab-atletas" class="tab-content">
         <div class="form-group">
             <input type="hidden" id="edit-athlete-id">
@@ -360,6 +366,7 @@
         </div>
     </div>
 
+    <!-- ABA 4: RELATÓRIO -->
     <div id="tab-relatorio" class="tab-content">
         <div class="form-group">
             <label for="filter-month"><b>Filtrar:</b></label>
@@ -399,6 +406,7 @@
     </div>
 </div>
 
+<!-- MODAL DE DETALHES / EDIÇÃO DE EVENTO -->
 <div id="event-modal" class="modal-overlay" onclick="closeEventModal()">
     <div class="modal-box" onclick="event.stopPropagation()">
         <div class="modal-header">
@@ -507,7 +515,7 @@
     import { getFirestore, collection, doc, setDoc, getDocs, getDoc, deleteDoc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     // --- CONFIGURAÇÃO DE SEGURANÇA E PIN ---
-    const APP_PIN = "1234"; // Defina sua senha aqui
+    const APP_PIN = "1234"; // Defina sua senha de acesso aqui
 
     window.verifyPin = function() {
         const pin = document.getElementById('pin-input').value;
@@ -743,7 +751,7 @@
         }
     };
 
-    // --- CALENDÁRIO COM RECORRÊNCIA ---
+    // --- CALENDÁRIO COM RECORRÊNCIA E CORREÇÃO DE FUSO HORÁRIO ---
     async function loadEvents() {
         eventsList = [];
         const querySnapshot = await getDocs(collection(db, "events"));
@@ -755,7 +763,7 @@
 
     window.saveNewEvent = async function() {
         const title = document.getElementById('event-title').value.trim();
-        const date = document.getElementById('event-date').value;
+        const date = document.getElementById('event-date').value; // YYYY-MM-DD
         const dateEnd = document.getElementById('event-date-end').value;
         const time = document.getElementById('event-time').value;
         const timeEnd = document.getElementById('event-time-end').value;
@@ -768,20 +776,25 @@
 
         document.getElementById('loading').style.display = "inline";
 
+        // CORREÇÃO DE FUSO HORÁRIO (Cria data no meio-dia local para evitar virada de dia)
+        const [year, month, day] = date.split('-').map(Number);
+        let curDate = new Date(year, month - 1, day, 12, 0, 0);
+
         const datesToCreate = [];
-        let curDate = new Date(date + "T00:00:00");
-        
-        // Define o alcance máximo da repetição
         let maxOccurrences = 1;
         let stepDays = 0;
 
-        if (recurrence === "weekly") { maxOccurrences = 12; stepDays = 7; }
+        if (recurrence === "weekly") { maxOccurrences = 12; stepDays = 7; } // 12 semanas (3 meses)
         else if (recurrence === "biweekly") { maxOccurrences = 6; stepDays = 14; }
         else if (recurrence === "monthly") { maxOccurrences = 6; }
 
         for (let i = 0; i < maxOccurrences; i++) {
-            const dateString = curDate.toISOString().split('T')[0];
-            datesToCreate.push(dateString);
+            const y = curDate.getFullYear();
+            const m = String(curDate.getMonth() + 1).padStart(2, '0');
+            const d = String(curDate.getDate()).padStart(2, '0');
+            const dStr = `${y}-${m}-${d}`;
+
+            datesToCreate.push(dStr);
 
             if (recurrence === "monthly") {
                 curDate.setMonth(curDate.getMonth() + 1);
@@ -819,6 +832,7 @@
 
         await loadEvents();
         document.getElementById('loading').style.display = "none";
+        alert(`Evento agendado com sucesso! (${datesToCreate.length} ocorrência(s) criada(s))`);
     };
 
     // --- MODAL DE EVENTO ---
