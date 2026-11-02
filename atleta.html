@@ -14,6 +14,7 @@
             --border: #e4e4e7;
             --success: #16a34a;
             --danger: #dc2626;
+            --warning: #ca8a04;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -34,11 +35,10 @@
         button.btn-submit { background: var(--primary); color: #ffffff; border: none; padding: 14px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 10px; transition: background 0.2s; }
         button.btn-submit:hover { background: #27272a; }
         
-        .status-msg { margin-top: 15px; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none; }
-        .status-success { background: #f0fdf4; color: var(--success); border: 1px solid #bbf7d0; }
+        .status-msg { margin-top: 15px; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none; line-height: 1.4; }
+        .status-success { background: #fefce8; color: var(--warning); border: 1px solid #fef08a; }
+        .status-done { background: #f0fdf4; color: var(--success); border: 1px solid #bbf7d0; }
         .status-error { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
-        
-        .geo-info { font-size: 11px; color: var(--text-muted); margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 4px; }
     </style>
 </head>
 <body>
@@ -54,11 +54,10 @@
         <label for="athlete-num">Nº da Camisola:</label>
         <input type="number" id="athlete-num" placeholder="Ex: 7" autofocus>
         
-        <button class="btn-submit" onclick="submitPresence()">Confirmar Minha Presença</button>
+        <button class="btn-submit" onclick="submitPresence()">Enviar para Validação</button>
     </div>
 
     <div id="status-msg" class="status-msg"></div>
-    <div class="geo-info">📍 Validação de localização ativa</div>
 </div>
 
 <script type="module">
@@ -77,78 +76,25 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Configuração das Coordenadas do Pavilhão (Exemplo: Escola Secundária Gonçalo Nunes)
-    // Altera depois para as coordenadas exatas se necessário
-    const PAVILION_LAT = 41.5348; 
-    const PAVILION_LNG = -8.6180; 
-    const MAX_DISTANCE_METERS = 150; // Raio máximo de permissão em metros
-
     const todayStr = new Date().toISOString().split('T')[0];
 
     window.addEventListener('DOMContentLoaded', () => {
-        // Verificar Trava 2: Se este telemóvel já marcou presença hoje
+        // Bloqueio por Dispositivo: Verifica se o telemóvel já marcou presença hoje
         const lastCheckin = localStorage.getItem('fca_checkin_date');
         const lastAthlete = localStorage.getItem('fca_checkin_number');
 
         if (lastCheckin === todayStr) {
-            showStatus(`A presença da camisola #${lastAthlete} já foi confirmada hoje neste telemóvel!`, "success");
+            showStatus(`Já enviou a chamada para a camisola #${lastAthlete} hoje neste telemóvel. Aguarde a validação do treinador!`, "done");
             document.getElementById('form-area').style.display = 'none';
         }
     });
 
-    function getDistanceInMeters(lat1, lon1, lat2, lon2) {
-        const R = 6371e3; // Raio da Terra em metros
-        const φ1 = lat1 * Math.PI / 180;
-        const φ2 = lat2 * Math.PI / 180;
-        const Δφ = (lat2 - lat1) * Math.PI / 180;
-        const Δλ = (lon2 - lon1) * Math.PI / 180;
+    window.submitPresence = async function() {
+        const number = document.getElementById('athlete-num').value.trim();
+        if (!number) return alert("Por favor, digite o número da tua camisola.");
 
-        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                  Math.cos(φ1) * Math.cos(φ2) *
-                  Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        showStatus("A enviar pedido de presença...", "success");
 
-        return R * c;
-    }
-
-    window.submitPresence = function() {
-        const numInput = document.getElementById('athlete-num').value.trim();
-        if (!numInput) return alert("Por favor, digite o número da tua camisola.");
-
-        const statusDiv = document.getElementById('status-msg');
-        statusDiv.style.display = 'block';
-        statusDiv.className = 'status-msg';
-        statusDiv.innerText = "A verificar a tua localização...";
-
-        // Trava 1: Geofencing (GPS)
-        if (!navigator.geolocation) {
-            showStatus("O teu navegador não suporta geolocalização.", "error");
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const userLat = position.coords.latitude;
-                const userLng = position.coords.longitude;
-                const distance = getDistanceInMeters(userLat, userLng, PAVILION_LAT, PAVILION_LNG);
-
-                // Se quiseres desativar temporariamente a verificação estrita de distância para testes, podes ajustar aqui
-                if (distance > MAX_DISTANCE_METERS) {
-                    showStatus(`Estás fora do pavilhão (${Math.round(distance)}m de distância). Precisas de estar no treino para marcar presença.`, "error");
-                    return;
-                }
-
-                // Processar no Firebase
-                await processFirebaseCheckin(numInput);
-            },
-            (error) => {
-                showStatus("Precisas de permitir o acesso à localização para confirmar a presença no pavilhão.", "error");
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
-    };
-
-    async function processFirebaseCheckin(number) {
         try {
             // 1. Procurar atleta pelo número de camisola
             const athletesSnap = await getDocs(collection(db, "athletes"));
@@ -162,7 +108,7 @@
             });
 
             if (!targetAthlete) {
-                showStatus(`Nenhuma atleta encontrada com a camisola #${number}. Confirma o número!`, "error");
+                showStatus(`Nenhuma atleta encontrada com a camisola #${number}. Confirma o teu número!`, "error");
                 return;
             }
 
@@ -171,26 +117,26 @@
             const docSnap = await getDoc(docRef);
             let currentRecords = docSnap.exists() ? docSnap.data().records || {} : {};
 
-            // 3. Atualizar para Presença
+            // 3. Registar como PENDENTE QR (Status "QP")
             currentRecords[targetAthlete.id] = {
-                status: "P",
-                justification: "Auto-registo (QR Code)"
+                status: "QP", // QP = QR Pendente
+                justification: "Aguardando Confirmação do Treinador"
             };
 
             await setDoc(docRef, { records: currentRecords }, { merge: true });
 
-            // 4. Gravar Trava 2 no telemóvel
+            // 4. Bloquear telemóvel para não enviar mais nenhuma presença hoje
             localStorage.setItem('fca_checkin_date', todayStr);
             localStorage.setItem('fca_checkin_number', number);
 
-            showStatus(`🟢 Presença confirmada com sucesso! Boa sorte no treino, ${targetAthlete.name.split(' ')[0]}!`, "success");
+            showStatus(`🟡 Pedido enviado com sucesso, ${targetAthlete.name.split(' ')[0]}! O treinador irá validar a tua presença no treino.`, "success");
             document.getElementById('form-area').style.display = 'none';
 
         } catch (err) {
             console.error(err);
             showStatus("Ocorreu um erro ao ligar ao servidor. Tenta novamente.", "error");
         }
-    }
+    };
 
     function showStatus(text, type) {
         const statusDiv = document.getElementById('status-msg');
